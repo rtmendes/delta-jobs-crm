@@ -1,41 +1,42 @@
 'use client'
 
-import { useState, useEffect, useCallback, ComponentType } from 'react'
-import { DeltaJob, JobStatus, Filters as FilterType } from '@/lib/types'
+import { useState, useEffect, useCallback } from 'react'
+import dynamic from 'next/dynamic'
+import { DeltaJob, JobStatus } from '@/lib/types'
 
-// We receive components as props to avoid any SSR from the parent
-interface DashboardClientProps {
-  StatsBar: ComponentType<{ jobs: DeltaJob[] }>
-  FilterBar: ComponentType<{
-    filters: { search: string; status: JobStatus | ''; minScore: number }
-    onChange: (f: { search: string; status: JobStatus | ''; minScore: number }) => void
-    onRunScraper: () => void
-    isScraperRunning: boolean
-  }>
-  KanbanBoard: ComponentType<{
-    jobs: DeltaJob[]
-    onSelect: (job: DeltaJob) => void
-    onStatusChange: (id: string, status: JobStatus) => void
-  }>
-  JobsTable: ComponentType<{
-    jobs: DeltaJob[]
-    onSelect: (job: DeltaJob) => void
-    onDelete: (id: string) => void
-  }>
-  JobDetailDrawer: ComponentType<{
-    job: DeltaJob | null
-    onClose: () => void
-    onUpdate: (id: string, updates: Partial<DeltaJob>) => void
-  }>
-}
+// All hook-heavy components loaded client-side only (ssr: false)
+// This prevents "Cannot read properties of null (reading 'useContext')" during SSR
+const Toaster = dynamic(
+  () => import('sonner').then(m => ({ default: m.Toaster })),
+  { ssr: false }
+)
 
-export function DashboardClient({
-  StatsBar,
-  FilterBar,
-  KanbanBoard,
-  JobsTable,
-  JobDetailDrawer,
-}: DashboardClientProps) {
+const StatsBar = dynamic(
+  () => import('./StatsBar').then(m => ({ default: m.StatsBar })),
+  { ssr: false }
+)
+
+const FilterBar = dynamic(
+  () => import('./FilterBar').then(m => ({ default: m.FilterBar })),
+  { ssr: false }
+)
+
+const KanbanBoard = dynamic(
+  () => import('./KanbanBoard').then(m => ({ default: m.KanbanBoard })),
+  { ssr: false }
+)
+
+const JobsTable = dynamic(
+  () => import('./JobsTable').then(m => ({ default: m.JobsTable })),
+  { ssr: false }
+)
+
+const JobDetailDrawer = dynamic(
+  () => import('./JobDetailDrawer').then(m => ({ default: m.JobDetailDrawer })),
+  { ssr: false }
+)
+
+export function DashboardClient() {
   const [jobs, setJobs] = useState<DeltaJob[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'kanban' | 'table'>('kanban')
@@ -135,6 +136,8 @@ export function DashboardClient({
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-200">
+      <Toaster theme="dark" position="bottom-right" richColors />
+
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-950/80 backdrop-blur sticky top-0 z-20">
         <div className="max-w-[1600px] mx-auto px-4 py-3 flex items-center justify-between gap-4">
