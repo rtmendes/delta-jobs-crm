@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') as JobStatus | null
     const minScore = searchParams.get('minScore')
     const search = searchParams.get('search')
+    const company = searchParams.get('company')
 
     let query = supabase
       .from('delta_jobs')
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
 
     if (status) query = query.eq('status', status)
     if (minScore) query = query.gte('score', parseInt(minScore))
+    if (company) query = query.eq('company', company)
     if (search) {
       query = query.or(
         `title.ilike.%${search}%,company.ilike.%${search}%,location.ilike.%${search}%`

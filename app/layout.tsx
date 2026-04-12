@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Delta Jobs CRM',
-  description: 'Track your Delta Air Lines job applications',
+  title: 'Aviation Jobs CRM',
+  description: 'Track aviation job applications across Delta Air Lines, Nicholas Air, Asian Pilots, and more',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

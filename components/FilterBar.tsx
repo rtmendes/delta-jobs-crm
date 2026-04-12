@@ -8,6 +8,7 @@ export interface Filters {
   search: string
   status: JobStatus | ''
   minScore: number
+  company: string
 }
 
 interface FilterBarProps {
@@ -15,13 +16,14 @@ interface FilterBarProps {
   onChange: (filters: Filters) => void
   onRunScraper: () => void
   isScraperRunning: boolean
+  companies: string[]
 }
 
-export function FilterBar({ filters, onChange, onRunScraper, isScraperRunning }: FilterBarProps) {
+export function FilterBar({ filters, onChange, onRunScraper, isScraperRunning, companies }: FilterBarProps) {
   const [showScore, setShowScore] = useState(false)
 
   const hasActive =
-    filters.search !== '' || filters.status !== '' || filters.minScore > 0
+    filters.search !== '' || filters.status !== '' || filters.minScore > 0 || filters.company !== ''
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -44,6 +46,20 @@ export function FilterBar({ filters, onChange, onRunScraper, isScraperRunning }:
           </button>
         )}
       </div>
+
+      {/* Company filter */}
+      {companies.length > 1 && (
+        <select
+          value={filters.company}
+          onChange={e => onChange({ ...filters, company: e.target.value })}
+          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-500"
+        >
+          <option value="">All sources</option>
+          {companies.map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+      )}
 
       {/* Status filter */}
       <select
@@ -92,7 +108,7 @@ export function FilterBar({ filters, onChange, onRunScraper, isScraperRunning }:
       {/* Clear */}
       {hasActive && (
         <button
-          onClick={() => onChange({ search: '', status: '', minScore: 0 })}
+          onClick={() => onChange({ search: '', status: '', minScore: 0, company: '' })}
           className="flex items-center gap-1 px-3 py-2 text-sm text-gray-500 hover:text-gray-300 transition-colors"
         >
           <X className="w-3.5 h-3.5" /> Clear

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { DeltaJob, JobStatus } from '@/lib/types'
 
@@ -45,13 +45,21 @@ const LOCAL_SERVER = 'http://localhost:8765'
 
 export function DashboardClient() {
   const [jobs, setJobs] = useState<DeltaJob[]>([])
+  const [allJobs, setAllJobs] = useState<DeltaJob[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'kanban' | 'table'>('kanban')
-  const [filters, setFilters] = useState<{ search: string; status: JobStatus | ''; minScore: number }>({
+  const [filters, setFilters] = useState<{ search: string; status: JobStatus | ''; minScore: number; company: string }>({
     search: '',
     status: '',
     minScore: 0,
+    company: '',
   })
+
+  // Derive unique companies from ALL jobs (unfiltered) for the dropdown
+  const companies = useMemo(() =>
+    [...new Set(allJobs.map(j => j.company))].sort(),
+    [allJobs]
+  )
   const [selectedJob, setSelectedJob] = useState<DeltaJob | null>(null)
   const [isScraperRunning, setIsScraperRunning] = useState(false)
   const [showAdvisor, setShowAdvisor] = useState(false)
@@ -65,10 +73,16 @@ export function DashboardClient() {
   const fetchJobs = useCallback(async () => {
     setLoading(true)
     try {
+      // Fetch all jobs (unfiltered) once for the company dropdown
+      const allRes = await fetch('/api/jobs')
+      if (allRes.ok) setAllJobs(await allRes.json())
+
+      // Fetch filtered jobs for the board
       const params = new URLSearchParams()
       if (filters.status) params.set('status', filters.status)
       if (filters.minScore > 0) params.set('minScore', String(filters.minScore))
       if (filters.search) params.set('search', filters.search)
+      if (filters.company) params.set('company', filters.company)
       const res = await fetch(`/api/jobs?${params.toString()}`)
       if (!res.ok) throw new Error('Failed to fetch')
       const data = await res.json()
@@ -204,8 +218,8 @@ export function DashboardClient() {
       <header className="border-b border-gray-800 bg-gray-950/80 backdrop-blur sticky top-0 z-20">
         <div className="max-w-[1600px] mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 bg-blue-600 rounded-md flex items-center justify-center text-sm font-bold text-white">Δ</div>
-            <h1 className="text-lg font-semibold text-white">Delta Jobs CRM</h1>
+            <div className="w-7 h-7 bg-blue-600 rounded-md flex items-center justify-center text-sm font-bold text-white">✈</div>
+            <h1 className="text-lg font-semibold text-white">Aviation Jobs CRM</h1>
           </div>
           {/* View toggle */}
           <div className="flex bg-gray-900 border border-gray-800 rounded-lg overflow-hidden text-sm">
@@ -236,6 +250,7 @@ export function DashboardClient() {
           onChange={setFilters}
           onRunScraper={handleRunScraper}
           isScraperRunning={isScraperRunning}
+          companies={companies}
         />
 
         {/* Board / Table */}
