@@ -36,6 +36,13 @@ const JobDetailDrawer = dynamic(
   { ssr: false }
 )
 
+const AdvisorPanel = dynamic(
+  () => import('./AdvisorPanel').then(m => ({ default: m.AdvisorPanel })),
+  { ssr: false }
+)
+
+const LOCAL_SERVER = 'http://localhost:8765'
+
 export function DashboardClient() {
   const [jobs, setJobs] = useState<DeltaJob[]>([])
   const [loading, setLoading] = useState(true)
@@ -47,6 +54,7 @@ export function DashboardClient() {
   })
   const [selectedJob, setSelectedJob] = useState<DeltaJob | null>(null)
   const [isScraperRunning, setIsScraperRunning] = useState(false)
+  const [showAdvisor, setShowAdvisor] = useState(false)
 
   const showToast = async (message: string, type: 'success' | 'error' = 'success') => {
     const { toast } = await import('sonner')
@@ -120,17 +128,71 @@ export function DashboardClient() {
     }
   }
 
+  // Calls the LOCAL FastAPI server at localhost:8765 directly from the browser.
+  // Vercel server-side cannot reach localhost, so this must be a client-side call.
   const handleRunScraper = async () => {
     setIsScraperRunning(true)
     try {
-      const res = await fetch('/api/run-scraper', { method: 'POST' })
+      // First check if local server is alive
+      const statusRes = await fetch(`${LOCAL_SERVER}/status`, { signal: AbortSignal.timeout(3000) })
+      if (!statusRes.ok) throw new Error('Server not responding')
+      const status = await statusRes.json()
+      if (status.scraper_busy) {
+        showToast('Scraper is already running…')
+        setIsScraperRunning(false)
+        return
+      }
+
+      showToast('▶ Scraper started — this takes 1–3 minutes')
+
+      const res = await fetch(`${LOCAL_SERVER}/run-scraper`, {
+        method: 'POST',
+        signal: AbortSignal.timeout(300_000), // 5-min timeout
+      })
       const data = await res.json()
-      showToast(data.message ?? 'Scraper triggered!')
-      setTimeout(fetchJobs, 3000)
-    } catch {
-      showToast('Failed to trigger scraper', 'error')
+
+      if (data.status === 'completed') {
+        showToast(`✓ Scraper done — ${data.jobsInExport ?? 0} jobs found. Importing…`)
+        // Auto-import from local server
+        await importFromLocalServer()
+      } else {
+        showToast(data.message ?? 'Scraper finished with errors', 'error')
+      }
+    } catch (err: unknown) {
+      const isTimeout = err instanceof Error && err.name === 'TimeoutError'
+      if (isTimeout) {
+        showToast('Scraper timed out — check /tmp/delta-scraper.log on your Mac', 'error')
+      } else {
+        showToast(
+          '⚠️ Cannot reach local server (localhost:8765). Make sure the Delta Jobs server is running.',
+          'error'
+        )
+      }
     } finally {
       setIsScraperRunning(false)
+    }
+  }
+
+  const importFromLocalServer = async () => {
+    try {
+      const res = await fetch(`${LOCAL_SERVER}/jobs`)
+      if (!res.ok) throw new Error()
+      const scraped: DeltaJob[] = await res.json()
+      if (!scraped.length) return
+
+      let imported = 0
+      for (const job of scraped) {
+        const postRes = await fetch('/api/jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(job),
+        })
+        if (postRes.ok) imported++
+      }
+      showToast(`✓ Imported ${imported} new jobs into CRM`)
+      fetchJobs()
+    } catch {
+      showToast('Could not import jobs from scraper', 'error')
     }
   }
 
@@ -168,7 +230,7 @@ export function DashboardClient() {
         {/* Stats */}
         <StatsBar jobs={jobs} />
 
-        {/* Filters */}
+        {/* Filters + Scraper button */}
         <FilterBar
           filters={filters}
           onChange={setFilters}
@@ -202,6 +264,25 @@ export function DashboardClient() {
         onClose={() => setSelectedJob(null)}
         onUpdate={handleUpdate}
       />
+
+      {/* Captain Advisor panel */}
+      {showAdvisor && (
+        <AdvisorPanel
+          jobs={jobs}
+          onClose={() => setShowAdvisor(false)}
+        />
+      )}
+
+      {/* Floating Advisor button — bottom-right */}
+      {!showAdvisor && (
+        <button
+          onClick={() => setShowAdvisor(true)}
+          title="Open Captain Advisor"
+          className="fixed bottom-6 right-6 z-30 w-14 h-14 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white rounded-full shadow-lg flex items-center justify-center text-2xl transition-all"
+        >
+          ✈
+        </button>
+      )}
     </div>
   )
 }

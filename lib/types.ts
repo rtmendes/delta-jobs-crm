@@ -12,13 +12,22 @@ export interface DeltaJob {
   title: string
   url: string
   company: string
-  location: string
+  location: string | null
   status: JobStatus
-  score: number
-  reasoning: string
-  jd_text: string
-  notes: string
-  source_query: string
+  score: number | null
+  reasoning: string | null
+  jd_text: string | null
+  notes: string | null
+  source_query: string | null
+  // New fields
+  resume: string | null
+  cover_letter: string | null
+  pay_rate: string | null
+  job_type: string | null
+  ai_income: string | null
+  ai_flight_hours: string | null
+  ai_seniority: string | null
+  ai_fo_credentials: string | null
   created_at: string
   updated_at: string
 }
