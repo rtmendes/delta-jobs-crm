@@ -150,6 +150,16 @@ export const JOB_SOURCES = [
     location: 'LGA / JFK / EWR — NYC in-person',
     obap: false, wai: false, aopa: false,
   },
+  {
+    tier: 4,
+    name: 'CACI International',
+    url: 'https://careers.caci.com',
+    jobsUrl: 'https://careers.caci.com/global/en/search-results',
+    query: 'aviation systems analyst remote data intelligence operations',
+    notes: 'Defense IT & intelligence. Contracts with FAA, DoD aviation programs, air traffic modernization (NextGen). Many fully remote or DC/NY-area roles. Clearance-eligible work builds serious government aviation credentials.',
+    location: 'Remote / DC metro / NY area',
+    obap: false, wai: false, aopa: false,
+  },
 ]
 
 export async function POST() {
