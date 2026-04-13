@@ -1,4 +1,6 @@
 {
-  "buildCommand": "npm run build || true",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "github": {
+    "silent": false
+  }
 }
